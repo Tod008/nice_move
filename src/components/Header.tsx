@@ -97,8 +97,14 @@ export function Header({ locale, dict }: { locale: Locale; dict: Dictionary }) {
         </button>
       </Container>
 
-      {open && (
-        <div className="border-t border-hairline bg-paper md:hidden">
+      <div
+        className={`grid overflow-hidden transition-[grid-template-rows] duration-300 ease-out md:hidden ${
+          open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+        }`}
+        aria-hidden={!open}
+        inert={!open}
+      >
+        <div className="overflow-hidden border-t border-hairline bg-paper">
           <Container className="flex flex-col gap-1 py-4">
             {navKeys.map((key) => {
               const href = `/${locale}${navPaths[key]}`;
@@ -125,7 +131,7 @@ export function Header({ locale, dict }: { locale: Locale; dict: Dictionary }) {
             </div>
           </Container>
         </div>
-      )}
+      </div>
     </header>
   );
 }

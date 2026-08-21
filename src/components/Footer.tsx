@@ -33,15 +33,15 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
     <footer className="border-t border-hairline bg-indigo-deep text-paper">
       <Container className="grid gap-10 py-16 sm:grid-cols-2 md:grid-cols-4">
         <div className="sm:col-span-2 md:col-span-2">
-          <Link href={`/${locale}`} className="flex items-center gap-3">
+          <Link href={`/${locale}`} className="flex items-center gap-3 sm:gap-5">
             <Image
               src="/mark.png"
               alt=""
-              width={36}
-              height={36}
-              className="h-9 w-9 brightness-0 invert"
+              width={80}
+              height={80}
+              className="h-9 w-9 brightness-0 invert sm:h-20 sm:w-20"
             />
-            <span className="font-display text-lg font-black uppercase tracking-tight">
+            <span className="font-display text-lg font-black uppercase tracking-tight sm:text-3xl">
               Nice Move Logistics
             </span>
           </Link>

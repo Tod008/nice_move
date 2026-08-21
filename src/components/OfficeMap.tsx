@@ -348,13 +348,13 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
               {/* office panel — photo as full background, card reserves its bottom via margin-top,
                   above the pending/error panels. Kept small since the photo button already opens
                   a full, bigger view on click — no need for the resting panel to be large too. */}
-              <div className="absolute bottom-3 left-3 z-20 w-[clamp(200px,22vw,260px)] min-h-[clamp(220px,30dvh,280px)] sm:bottom-6 sm:left-6 sm:w-[clamp(240px,26vw,320px)] sm:min-h-[clamp(300px,38dvh,400px)]">
+              <div className="absolute bottom-3 left-3 z-20 w-[clamp(160px,calc(50vw-12px),260px)] min-h-[clamp(220px,30dvh,280px)] overflow-hidden rounded-xl sm:bottom-6 sm:left-6 sm:w-[clamp(240px,26vw,320px)] sm:min-h-[clamp(300px,38dvh,400px)]">
                 <button
                   ref={photoTriggerRef}
                   type="button"
                   onClick={openPhoto}
                   aria-label="View photo of Eco International Tower full size"
-                  className="office-photo-trigger absolute inset-0 z-0 cursor-zoom-in overflow-hidden border border-paper/16"
+                  className="office-photo-trigger absolute inset-0 z-0 cursor-zoom-in overflow-hidden rounded-xl border border-paper/16"
                 >
                   <Image
                     src={TOWER_PHOTO_SRC}
