@@ -1,9 +1,11 @@
 import Link from "next/link";
+import Image from "next/image";
 import { isLocale } from "@/lib/i18n/config";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { notFound } from "next/navigation";
 import { Container } from "@/components/Container";
 import { CorridorRoute, CorridorRule } from "@/components/Corridor";
+import { ServiceRows } from "@/components/ServiceRows";
 
 export default async function HomePage({ params }: PageProps<"/[locale]">) {
   const { locale } = await params;
@@ -12,34 +14,45 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
 
   return (
     <>
-      <section className="pt-16 pb-20 sm:pt-24 sm:pb-28">
-        <Container>
+      <section className="relative flex min-h-[clamp(560px,84vh,780px)] items-center justify-center overflow-hidden">
+        <Image
+          src="/hero-zamyn-uud.jpg"
+          alt=""
+          fill
+          preload
+          sizes="100vw"
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_20%,rgba(27,10,77,0.35),rgba(12,5,36,0.86))]" />
+        <Container className="relative z-10 flex flex-col items-center text-center">
           <p className="font-mono text-xs uppercase tracking-[0.25em] text-orange">
             {dict.hero.eyebrow}
           </p>
-          <h1 className="mt-5 max-w-4xl font-display text-5xl font-black uppercase leading-[0.95] tracking-tight text-ink sm:text-6xl md:text-7xl">
+          <h1 className="mt-5 max-w-4xl text-balance font-display text-[clamp(38px,7.4vw,84px)] font-bold uppercase leading-[0.95] text-paper">
             {dict.hero.headline}
           </h1>
-          <p className="mt-6 max-w-xl text-base leading-relaxed text-ink/70 sm:text-lg">
+          <p className="mt-6 max-w-[36em] text-base leading-relaxed text-paper/70 sm:text-lg">
             {dict.hero.sub}
           </p>
-          <div className="mt-8 flex flex-wrap gap-4">
+          <div className="mt-8 flex flex-wrap justify-center gap-4">
             <Link
               href={`/${locale}/contact`}
-              className="rounded-sm bg-indigo px-6 py-3 font-mono text-xs uppercase tracking-[0.15em] text-paper transition-colors hover:bg-indigo-deep"
+              className="rounded-sm bg-orange px-6 py-3 font-mono text-xs uppercase tracking-[0.15em] text-paper transition-colors hover:bg-orange/90"
             >
               {dict.hero.ctaPrimary}
             </Link>
             <Link
               href={`/${locale}/services`}
-              className="rounded-sm border border-hairline px-6 py-3 font-mono text-xs uppercase tracking-[0.15em] text-ink transition-colors hover:border-ink"
+              className="rounded-sm border border-paper/45 px-6 py-3 font-mono text-xs uppercase tracking-[0.15em] text-paper transition-colors hover:bg-paper/8"
             >
               {dict.hero.ctaSecondary}
             </Link>
           </div>
         </Container>
+      </section>
 
-        <Container className="mt-16">
+      <section className="py-16 sm:py-24">
+        <Container>
           <div className="rounded-sm border border-hairline bg-white/60 p-6 sm:p-8">
             <p className="font-mono text-[11px] uppercase tracking-[0.25em] text-mist">
               {dict.corridor.eyebrow}
@@ -77,18 +90,8 @@ export default async function HomePage({ params }: PageProps<"/[locale]">) {
             </Link>
           </div>
 
-          <div className="mt-12 grid gap-px overflow-hidden rounded-sm border border-hairline bg-hairline sm:grid-cols-2 lg:grid-cols-4">
-            {dict.services.items.map((item) => (
-              <div key={item.code} className="flex flex-col gap-3 bg-paper p-6">
-                <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-orange">
-                  {item.code}
-                </span>
-                <h3 className="font-display text-xl font-bold uppercase leading-tight text-ink">
-                  {item.title}
-                </h3>
-                <p className="text-sm leading-relaxed text-ink/70">{item.summary}</p>
-              </div>
-            ))}
+          <div className="mt-12">
+            <ServiceRows locale={locale} items={dict.services.items} />
           </div>
         </Container>
       </section>

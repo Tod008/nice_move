@@ -7,6 +7,7 @@ const serviceItems = [
     summary: "Trans-Mongolian and connecting rail links into China and Russia.",
     detail:
       "Full and part container loads routed via Zamyn-Üüd and Sükhbaatar, timed to connecting networks on both sides of the border.",
+    image: "/services/rail.jpg",
   },
   {
     code: "ROAD",
@@ -14,6 +15,7 @@ const serviceItems = [
     summary: "Door-to-door trucking for time-sensitive and last-mile cargo.",
     detail:
       "Cross-border trucking where rail schedules don't fit the cargo, plus first- and last-mile delivery inside Mongolia.",
+    image: "/services/road.jpg",
   },
   {
     code: "CUSTOMS",
@@ -21,6 +23,7 @@ const serviceItems = [
     summary: "Clearance handled at every crossing before cargo arrives.",
     detail:
       "Documentation, declarations, and clearance coordinated in advance so freight doesn't wait at the border.",
+    image: "/services/customs.jpg",
   },
   {
     code: "WHSE",
@@ -28,6 +31,7 @@ const serviceItems = [
     summary: "Storage and load consolidation in Ulaanbaatar.",
     detail:
       "Short- and long-term storage, plus consolidation of smaller shipments into full loads before onward transport.",
+    image: "/services/warehouse.jpg",
   },
 ];
 

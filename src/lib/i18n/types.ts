@@ -8,6 +8,7 @@ export type ServiceItem = {
   title: string;
   summary: string;
   detail: string;
+  image: string;
 };
 
 export type RegionItem = {

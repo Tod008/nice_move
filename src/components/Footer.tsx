@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/types";
+import { getDictionary } from "@/lib/i18n/dictionaries";
 import { Container } from "./Container";
 
 const navKeys = ["home", "about", "services", "partners", "contact"] as const;
@@ -13,8 +14,18 @@ const navPaths: Record<(typeof navKeys)[number], string> = {
   contact: "/contact",
 };
 
+function Bilingual({ en, mn }: { en: string; mn: string }) {
+  return (
+    <>
+      {en} <span className="text-paper/45">{mn}</span>
+    </>
+  );
+}
+
 export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
   const year = new Date().getFullYear();
+  const en = getDictionary("en");
+  const mn = getDictionary("mn");
 
   return (
     <footer className="border-t border-hairline bg-indigo-deep text-paper">
@@ -33,13 +44,13 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
             </span>
           </Link>
           <p className="mt-4 max-w-xs font-mono text-xs uppercase tracking-[0.15em] text-paper/60">
-            {dict.footer.tagline}
+            <Bilingual en={en.footer.tagline} mn={mn.footer.tagline} />
           </p>
         </div>
 
         <div>
           <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-paper/50">
-            {dict.footer.navTitle}
+            <Bilingual en={en.footer.navTitle} mn={mn.footer.navTitle} />
           </div>
           <ul className="mt-4 space-y-2">
             {navKeys.map((key) => (
@@ -48,7 +59,7 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
                   href={`/${locale}${navPaths[key]}`}
                   className="text-sm text-paper/80 transition-colors hover:text-orange"
                 >
-                  {dict.nav[key]}
+                  <Bilingual en={en.nav[key]} mn={mn.nav[key]} />
                 </Link>
               </li>
             ))}
@@ -57,7 +68,7 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
 
         <div>
           <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-paper/50">
-            {dict.footer.addressLabel}
+            <Bilingual en={en.footer.addressLabel} mn={mn.footer.addressLabel} />
           </div>
           <p className="mt-4 text-sm text-paper/80">{dict.footer.address}</p>
         </div>
@@ -65,7 +76,7 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
 
       <Container className="flex flex-col gap-2 border-t border-paper/10 py-6 text-xs text-paper/50 sm:flex-row sm:items-center sm:justify-between">
         <span>
-          © {year} Nice Move Logistics. {dict.footer.rights}
+          © {year} Nice Move Logistics. <Bilingual en={en.footer.rights} mn={mn.footer.rights} />
         </span>
       </Container>
     </footer>
