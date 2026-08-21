@@ -10,6 +10,19 @@ declare global {
       lng: number;
     }
 
+    enum ControlPosition {
+      TOP_LEFT = 1,
+      TOP_CENTER = 2,
+      TOP_RIGHT = 3,
+      LEFT_TOP = 5,
+      RIGHT_TOP = 7,
+      LEFT_BOTTOM = 9,
+      BOTTOM_LEFT = 10,
+      BOTTOM_CENTER = 11,
+      BOTTOM_RIGHT = 12,
+      RIGHT_BOTTOM = 13,
+    }
+
     interface MapOptions {
       center?: LatLngLiteral;
       zoom?: number;
@@ -17,6 +30,7 @@ declare global {
       mapTypeId?: string;
       disableDefaultUI?: boolean;
       zoomControl?: boolean;
+      zoomControlOptions?: { position: ControlPosition };
       gestureHandling?: string;
       isFractionalZoomEnabled?: boolean;
       tilt?: number;

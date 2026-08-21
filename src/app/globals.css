@@ -48,10 +48,10 @@ body {
   }
 }
 
-/* Office map overlay: pin marker + docked card fade-ins.
-   Timings are fixed delays, not React state, so they replay on every mount
+/* Office map overlay: pin marker pulse + label fade-in.
+   Timing is a fixed CSS delay, not React state, so it replays on every mount
    without any timer bookkeeping. The reduced-motion block above already
-   collapses these to a single near-instant frame. */
+   collapses it to a single near-instant frame. */
 .office-pin {
   position: relative;
   width: 14px;
@@ -130,34 +130,7 @@ body {
   }
 }
 
-.office-address-card {
-  opacity: 0;
-  animation: office-fade-up 420ms ease-out 2400ms forwards;
-}
-
-.office-tower-photo {
-  opacity: 0;
-  animation: office-fade-left 420ms ease-out 3300ms forwards;
-}
-
-@keyframes office-fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes office-fade-left {
-  from {
-    opacity: 0;
-    transform: translateX(-14px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.office-photo-trigger:hover + .office-view-chip,
+.office-photo-trigger:focus-visible + .office-view-chip {
+  color: var(--color-orange);
 }

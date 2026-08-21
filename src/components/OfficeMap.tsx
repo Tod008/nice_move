@@ -11,10 +11,9 @@ type MapStatus = "pending" | "ready" | "error";
 const FLY_MS = 3200;
 const START_ZOOM = 11.4;
 const OFFICE_ZOOM = 18.6;
-const AERIAL_TILT = 55;
-const AERIAL_HEADING = 20;
 const NO_PAINT_TIMEOUT_MS = 6000;
 const GMAPS_SCRIPT_ID = "gmaps-script";
+const TOWER_PHOTO_SRC = "/office/tower-eco-international.jpg";
 
 const OFFICE_CENTER: google.maps.LatLngLiteral = { lat: OFFICE.lat, lng: OFFICE.lng };
 
@@ -22,12 +21,10 @@ function prefersReducedMotion() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-type Camera = { zoom: number; tilt: number; heading: number };
-
-function animateCamera(
+function animateZoom(
   map: google.maps.Map,
-  from: Camera,
-  to: Camera,
+  fromZoom: number,
+  toZoom: number,
   rafRef: React.MutableRefObject<number | null>,
   durationMs: number,
   onDone?: () => void
@@ -38,9 +35,7 @@ function animateCamera(
     const eased = 1 - Math.pow(1 - p, 3);
     map.moveCamera({
       center: OFFICE_CENTER,
-      zoom: from.zoom + (to.zoom - from.zoom) * eased,
-      tilt: from.tilt + (to.tilt - from.tilt) * eased,
-      heading: from.heading + (to.heading - from.heading) * eased,
+      zoom: fromZoom + (toZoom - fromZoom) * eased,
     });
     if (p < 1) {
       rafRef.current = requestAnimationFrame(tick);
@@ -80,11 +75,14 @@ const FOCUSABLE_SELECTOR =
 export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
   const [expanded, setExpanded] = useState(false);
   const [status, setStatus] = useState<MapStatus>("pending");
-  const [aerial, setAerial] = useState(false);
+  const [photoOpen, setPhotoOpen] = useState(false);
 
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const photoTriggerRef = useRef<HTMLButtonElement>(null);
+  const photoCloseRef = useRef<HTMLButtonElement>(null);
+  const photoPanelRef = useRef<HTMLDivElement>(null);
   const mapElRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
@@ -103,6 +101,7 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
     }
     triggerRef.current?.focus();
     setExpanded(false);
+    setPhotoOpen(false);
   }, [expanded]);
 
   const openOverlay = useCallback(() => {
@@ -113,9 +112,18 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
     document.body.style.left = "0";
     document.body.style.right = "0";
     document.body.style.width = "100%";
-    setAerial(false);
+    setPhotoOpen(false);
     setStatus("pending");
     setExpanded(true);
+  }, []);
+
+  const openPhoto = useCallback(() => {
+    setPhotoOpen(true);
+  }, []);
+
+  const closePhoto = useCallback(() => {
+    setPhotoOpen(false);
+    photoTriggerRef.current?.focus();
   }, []);
 
   // Safety net: if this ever unmounts while the lock is held, release it.
@@ -131,21 +139,31 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
     };
   }, []);
 
-  // Focus management + Tab trap while the overlay is open.
+  // Focus the right close control whenever a layer opens.
   useEffect(() => {
     if (!expanded) return;
     closeButtonRef.current?.focus();
+  }, [expanded]);
+
+  useEffect(() => {
+    if (photoOpen) photoCloseRef.current?.focus();
+  }, [photoOpen]);
+
+  // Escape + Tab trap, scoped to whichever layer (photo or map) is on top.
+  useEffect(() => {
+    if (!expanded) return;
 
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.preventDefault();
-        closeOverlay();
+        if (photoOpen) closePhoto();
+        else closeOverlay();
         return;
       }
       if (e.key !== "Tab") return;
-      const panel = panelRef.current;
-      if (!panel) return;
-      const focusable = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+      const container = photoOpen ? photoPanelRef.current : panelRef.current;
+      if (!container) return;
+      const focusable = Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
       if (focusable.length === 0) return;
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
@@ -160,7 +178,7 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [expanded, closeOverlay]);
+  }, [expanded, photoOpen, closeOverlay, closePhoto]);
 
   // Load the Maps script (first click only) and drive the fly-in camera move.
   useEffect(() => {
@@ -218,12 +236,10 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
         content: createPinElement(),
       });
 
-      const from: Camera = { zoom: START_ZOOM, tilt: 0, heading: 0 };
-      const to: Camera = { zoom: OFFICE_ZOOM, tilt: 0, heading: 0 };
       if (prefersReducedMotion()) {
-        map.moveCamera({ center: OFFICE_CENTER, ...to });
+        map.moveCamera({ center: OFFICE_CENTER, zoom: OFFICE_ZOOM });
       } else {
-        animateCamera(map, from, to, rafRef, FLY_MS);
+        animateZoom(map, START_ZOOM, OFFICE_ZOOM, rafRef, FLY_MS);
       }
     }
 
@@ -254,26 +270,6 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
     };
   }, [expanded]);
 
-  const setAerialMode = useCallback(
-    (next: boolean) => {
-      if (aerial === next) return;
-      const map = mapRef.current;
-      if (map) {
-        map.setMapTypeId(next ? "satellite" : "roadmap");
-        if (rafRef.current) cancelAnimationFrame(rafRef.current);
-        const from: Camera = { zoom: OFFICE_ZOOM, tilt: next ? 0 : AERIAL_TILT, heading: next ? 0 : AERIAL_HEADING };
-        const to: Camera = { zoom: OFFICE_ZOOM, tilt: next ? AERIAL_TILT : 0, heading: next ? AERIAL_HEADING : 0 };
-        if (prefersReducedMotion()) {
-          map.moveCamera({ center: OFFICE_CENTER, ...to });
-        } else {
-          animateCamera(map, from, to, rafRef, FLY_MS);
-        }
-      }
-      setAerial(next);
-    },
-    [aerial]
-  );
-
   return (
     <>
       <button
@@ -301,7 +297,7 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
       {expanded &&
         createPortal(
           <div
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-[#0c0524]/72 p-0 sm:p-6"
+            className="fixed inset-x-0 top-0 z-[200] flex h-dvh items-center justify-center overflow-hidden bg-[#0c0524]/72 p-0 sm:p-6"
             onClick={closeOverlay}
           >
             <div
@@ -310,32 +306,8 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
               aria-modal="true"
               aria-label={dict.heading}
               onClick={(e) => e.stopPropagation()}
-              className="relative h-full w-full overflow-hidden bg-[#0c0524] shadow-2xl sm:h-[80vh] sm:w-[80vw] sm:max-w-[1500px] sm:rounded-sm sm:border sm:border-paper/22"
+              className="relative h-full w-full overflow-hidden bg-[#0c0524] shadow-2xl sm:h-[80dvh] sm:w-[80vw] sm:max-w-[1500px] sm:rounded-sm sm:border sm:border-paper/22"
             >
-              {/* map / aerial toggle */}
-              <div className="absolute left-3 top-3 z-40 flex overflow-hidden rounded-sm border border-paper/25 bg-[#0c0524]/80">
-                <button
-                  type="button"
-                  aria-pressed={!aerial}
-                  onClick={() => setAerialMode(false)}
-                  className={`min-h-[40px] px-4 font-mono text-[11px] uppercase tracking-[0.15em] transition-colors ${
-                    !aerial ? "bg-orange text-paper" : "text-paper/70 hover:text-paper"
-                  }`}
-                >
-                  Map
-                </button>
-                <button
-                  type="button"
-                  aria-pressed={aerial}
-                  onClick={() => setAerialMode(true)}
-                  className={`min-h-[40px] px-4 font-mono text-[11px] uppercase tracking-[0.15em] transition-colors ${
-                    aerial ? "bg-orange text-paper" : "text-paper/70 hover:text-paper"
-                  }`}
-                >
-                  Aerial 3D
-                </button>
-              </div>
-
               {/* top scrim + close */}
               <div className="pointer-events-none absolute inset-x-0 top-0 z-30 h-20 bg-gradient-to-b from-[#0c0524]/80 to-transparent" />
               <button
@@ -373,47 +345,99 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
                 </div>
               )}
 
-              {/* docked address + tower photo — above the pending/error panels */}
-              <div className="absolute inset-x-0 bottom-0 z-20 flex items-end gap-3 p-3 sm:gap-[14px] sm:p-6">
-                <div className="office-tower-photo flex shrink-0 flex-col gap-1.5">
-                  <div className="relative h-[132px] w-[104px] overflow-hidden border border-paper/16 sm:h-[190px] sm:w-[150px]">
-                    <Image
-                      src="/office/tower-eco-international.jpg"
-                      alt=""
-                      fill
-                      preload
-                      sizes="150px"
-                      className="object-cover"
-                    />
-                  </div>
-                  <p className="hidden font-mono text-[10px] uppercase tracking-[0.15em] text-paper/55 sm:block">
-                    Eco International Tower / Peace Avenue
-                  </p>
-                </div>
+              {/* office panel — photo as full background, card reserves its bottom via margin-top,
+                  above the pending/error panels. Kept small since the photo button already opens
+                  a full, bigger view on click — no need for the resting panel to be large too. */}
+              <div className="absolute bottom-3 left-3 z-20 w-[clamp(240px,26vw,320px)] min-h-[clamp(260px,36dvh,340px)] sm:bottom-6 sm:left-6 sm:min-h-[clamp(300px,38dvh,400px)]">
+                <button
+                  ref={photoTriggerRef}
+                  type="button"
+                  onClick={openPhoto}
+                  aria-label="View photo of Eco International Tower full size"
+                  className="office-photo-trigger absolute inset-0 z-0 cursor-zoom-in overflow-hidden border border-paper/16"
+                >
+                  <Image
+                    src={TOWER_PHOTO_SRC}
+                    alt=""
+                    fill
+                    preload
+                    sizes="(max-width: 639px) 300px, 460px"
+                    className="object-cover"
+                  />
+                </button>
 
-                <div className="office-address-card min-w-0 flex-1 border border-paper/16 bg-[#0c0524]/90 p-3 sm:max-w-xs sm:p-4">
-                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-orange">
-                    {dict.heading}
-                  </p>
-                  <p className="mt-2 text-sm leading-snug text-paper/85">
-                    {OFFICE.lines.map((line, i) => (
-                      <span key={line}>
-                        {line}
-                        {i < OFFICE.lines.length - 1 && <br />}
-                      </span>
-                    ))}
-                  </p>
+                <span className="office-view-chip pointer-events-none absolute right-2 top-2 z-10 rounded-sm bg-[#0c0524]/70 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.15em] text-paper/80">
+                  View photo
+                </span>
+
+                <div className="pointer-events-none relative z-10 mt-[48%] flex flex-col gap-3 border-t border-paper/12 bg-[#0c0524]/86 p-3 sm:mt-[56%] sm:p-4">
+                  <div className="pointer-events-auto">
+                    <p className="font-mono text-xs uppercase tracking-[0.22em] text-orange">
+                      {dict.heading}
+                    </p>
+                    <p className="mt-2 text-[17px] leading-snug text-paper sm:text-[19px]">
+                      {OFFICE.lines.map((line, i) => (
+                        <span key={line}>
+                          {line}
+                          {i < OFFICE.lines.length - 1 && <br />}
+                        </span>
+                      ))}
+                    </p>
+                  </div>
                   <a
                     href={`https://www.google.com/maps/dir/?api=1&destination=${OFFICE.lat},${OFFICE.lng}`}
                     target="_blank"
                     rel="noopener"
-                    className="mt-3 inline-flex min-h-[44px] items-center rounded-sm bg-orange px-4 font-mono text-xs uppercase tracking-[0.15em] text-paper transition-colors hover:bg-orange/90"
+                    className="pointer-events-auto flex min-h-[52px] w-full items-center justify-center bg-orange px-4 font-mono text-[13px] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-orange/90"
                   >
                     {dict.directions}
                   </a>
                 </div>
               </div>
             </div>
+
+            {/* full-window photo — a sibling of the panel, not nested inside it, so
+                inset-0 resolves against the fixed full-viewport backdrop above, not
+                the panel's own 80vw/80vh box */}
+            {photoOpen && (
+              <div
+                ref={photoPanelRef}
+                className="absolute inset-0 z-[600] overflow-hidden bg-[rgba(6,2,18,0.96)]"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  closePhoto();
+                }}
+              >
+                <Image
+                  src={TOWER_PHOTO_SRC}
+                  alt="Eco International Tower, Peace Avenue, Ulaanbaatar"
+                  fill
+                  preload
+                  sizes="100vw"
+                  className="object-contain"
+                />
+                <button
+                  ref={photoCloseRef}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closePhoto();
+                  }}
+                  aria-label="Close photo"
+                  className="absolute left-3 top-3 z-10 flex h-[52px] w-[52px] items-center justify-center rounded-sm border border-paper/25 bg-[#0c0524]/80 text-paper transition-colors hover:bg-[#0c0524]"
+                >
+                  ✕
+                </button>
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[rgba(6,2,18,0.9)] to-transparent p-6">
+                  <p className="font-display text-[clamp(24px,4.4vw,52px)] uppercase leading-none text-paper">
+                    Eco International Tower
+                  </p>
+                  <p className="mt-2 text-[clamp(15px,1.9vw,24px)] text-paper/70">
+                    Peace Avenue, Ulaanbaatar · Nice Move Logistics, 10th floor
+                  </p>
+                </div>
+              </div>
+            )}
           </div>,
           document.body
         )}
