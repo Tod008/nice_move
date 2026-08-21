@@ -105,38 +105,26 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
   const mapRef = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   const rafRef = useRef<number | null>(null);
-  const scrollYRef = useRef(0);
   const dragOriginRef = useRef<DragOrigin | null>(null);
   const dragMovedRef = useRef(false);
 
+  // The background page is left scrollable on purpose: the overlay is
+  // position:fixed, so it stays put on screen regardless of scroll position
+  // behind it — no lock needed to keep it in place.
   const closeOverlay = useCallback(() => {
     if (!expanded) return;
-    if (document.body.style.position === "fixed") {
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.left = "";
-      document.body.style.right = "";
-      document.body.style.width = "";
-      window.scrollTo(0, scrollYRef.current);
-    }
     triggerRef.current?.focus();
     setExpanded(false);
     setPhotoOpen(false);
   }, [expanded]);
 
   const openOverlay = useCallback(() => {
-    if (document.body.style.position === "fixed") return;
-    scrollYRef.current = window.scrollY;
-    document.body.style.position = "fixed";
-    document.body.style.top = `-${scrollYRef.current}px`;
-    document.body.style.left = "0";
-    document.body.style.right = "0";
-    document.body.style.width = "100%";
+    if (expanded) return;
     setPhotoOpen(false);
     setDragOffset({ x: 0, y: 0 });
     setStatus("pending");
     setExpanded(true);
-  }, []);
+  }, [expanded]);
 
   // Bounds (in drag-offset space) that keep the office panel inside the map panel.
   const getDragBounds = useCallback((): DragBounds | null => {
@@ -218,19 +206,6 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
   const closePhoto = useCallback(() => {
     setPhotoOpen(false);
     photoTriggerRef.current?.focus();
-  }, []);
-
-  // Safety net: if this ever unmounts while the lock is held, release it.
-  useEffect(() => {
-    return () => {
-      if (document.body.style.position === "fixed") {
-        document.body.style.position = "";
-        document.body.style.top = "";
-        document.body.style.left = "";
-        document.body.style.right = "";
-        document.body.style.width = "";
-      }
-    };
   }, []);
 
   // Focus the right close control whenever a layer opens.
@@ -402,8 +377,6 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
               onClick={(e) => e.stopPropagation()}
               className="relative h-full w-full overflow-hidden bg-[#0c0524] shadow-2xl sm:h-[80dvh] sm:w-[80vw] sm:max-w-[1500px] sm:rounded-sm sm:border sm:border-paper/22"
             >
-              {/* top scrim + close */}
-              <div className="pointer-events-none absolute inset-x-0 top-0 z-30 h-20 bg-gradient-to-b from-[#0c0524]/80 to-transparent" />
               <button
                 ref={closeButtonRef}
                 type="button"
