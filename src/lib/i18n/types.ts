@@ -38,8 +38,12 @@ export type Dictionary = {
     navTitle: string;
     rights: string;
     addressLabel: string;
-    address: string;
     langLabel: string;
+    office: {
+      heading: string;
+      expand: string;
+      directions: string;
+    };
   };
   hero: {
     eyebrow: string;

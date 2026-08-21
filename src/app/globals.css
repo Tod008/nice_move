@@ -47,3 +47,117 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Office map overlay: pin marker + docked card fade-ins.
+   Timings are fixed delays, not React state, so they replay on every mount
+   without any timer bookkeeping. The reduced-motion block above already
+   collapses these to a single near-instant frame. */
+.office-pin {
+  position: relative;
+  width: 14px;
+  height: 14px;
+}
+
+.office-pin__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid var(--color-orange);
+  animation: office-pin-pulse 2.6s ease-out infinite;
+}
+
+.office-pin__dot {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  background: var(--color-orange);
+  box-shadow:
+    0 0 0 3px rgba(251, 250, 248, 0.9),
+    0 6px 18px rgba(0, 0, 0, 0.5);
+}
+
+.office-pin__label {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  white-space: nowrap;
+  background: rgba(12, 5, 36, 0.88);
+  border: 1px solid rgba(251, 250, 248, 0.16);
+  border-radius: 2px;
+  opacity: 0;
+  transform: translateY(-50%);
+  animation: office-pin-label-in 400ms ease-out 2600ms forwards;
+}
+
+.office-pin__label strong {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  color: var(--color-paper);
+}
+
+.office-pin__label span {
+  font-size: 0.75rem;
+  color: rgba(251, 250, 248, 0.65);
+}
+
+@keyframes office-pin-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(4.6);
+    opacity: 0;
+  }
+}
+
+@keyframes office-pin-label-in {
+  from {
+    opacity: 0;
+    transform: translateY(calc(-50% + 4px));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%);
+  }
+}
+
+.office-address-card {
+  opacity: 0;
+  animation: office-fade-up 420ms ease-out 2400ms forwards;
+}
+
+.office-tower-photo {
+  opacity: 0;
+  animation: office-fade-left 420ms ease-out 3300ms forwards;
+}
+
+@keyframes office-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes office-fade-left {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

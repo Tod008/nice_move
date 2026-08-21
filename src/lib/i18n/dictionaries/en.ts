@@ -53,8 +53,12 @@ const en: Dictionary = {
     navTitle: "Navigate",
     rights: "All rights reserved.",
     addressLabel: "Registered office",
-    address: "Ulaanbaatar, Mongolia",
     langLabel: "Language",
+    office: {
+      heading: "Registered office",
+      expand: "Click to explore",
+      directions: "Get directions",
+    },
   },
   hero: {
     eyebrow: "ULAANBAATAR ⇄ TOKYO · SHANGHAI · MOSCOW",

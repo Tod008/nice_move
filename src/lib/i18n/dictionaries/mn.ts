@@ -53,8 +53,12 @@ const mn: Dictionary = {
     navTitle: "Цэс",
     rights: "Бүх эрх хуулиар хамгаалагдсан.",
     addressLabel: "Бүртгэлтэй хаяг",
-    address: "Улаанбаатар, Монгол улс",
     langLabel: "Хэл",
+    office: {
+      heading: "Бүртгэлтэй хаяг",
+      expand: "Дэлгэрэнгүй харах",
+      directions: "Замын зураг",
+    },
   },
   hero: {
     eyebrow: "УЛААНБААТАР ⇄ ТОКИО · ШАНХАЙ · МОСКВА",

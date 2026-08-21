@@ -3,6 +3,8 @@ import Image from "next/image";
 import type { Locale } from "@/lib/i18n/config";
 import type { Dictionary } from "@/lib/i18n/types";
 import { getDictionary } from "@/lib/i18n/dictionaries";
+import { OFFICE } from "@/lib/office";
+import { OfficeMapLoader } from "./OfficeMapLoader";
 import { Container } from "./Container";
 
 const navKeys = ["home", "about", "services", "partners", "contact"] as const;
@@ -70,7 +72,17 @@ export function Footer({ locale, dict }: { locale: Locale; dict: Dictionary }) {
           <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-paper/50">
             <Bilingual en={en.footer.addressLabel} mn={mn.footer.addressLabel} />
           </div>
-          <p className="mt-4 text-sm text-paper/80">{dict.footer.address}</p>
+          <div className="mt-4">
+            <OfficeMapLoader dict={dict.footer.office} />
+          </div>
+          <p className="mt-4 text-sm text-paper/80">
+            {OFFICE.lines.map((line, i) => (
+              <span key={line}>
+                {line}
+                {i < OFFICE.lines.length - 1 && <br />}
+              </span>
+            ))}
+          </p>
         </div>
       </Container>
 
