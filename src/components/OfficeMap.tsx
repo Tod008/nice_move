@@ -72,14 +72,32 @@ function createPinElement(): HTMLDivElement {
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+const CLICK_DRAG_THRESHOLD = 5;
+
+type DragBounds = { minX: number; maxX: number; minY: number; maxY: number };
+
+type DragOrigin = DragBounds & {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  baseX: number;
+  baseY: number;
+};
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
 export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
   const [expanded, setExpanded] = useState(false);
   const [status, setStatus] = useState<MapStatus>("pending");
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
   const triggerRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const officePanelRef = useRef<HTMLDivElement>(null);
   const photoTriggerRef = useRef<HTMLButtonElement>(null);
   const photoCloseRef = useRef<HTMLButtonElement>(null);
   const photoPanelRef = useRef<HTMLDivElement>(null);
@@ -88,6 +106,8 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
   const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   const rafRef = useRef<number | null>(null);
   const scrollYRef = useRef(0);
+  const dragOriginRef = useRef<DragOrigin | null>(null);
+  const dragMovedRef = useRef(false);
 
   const closeOverlay = useCallback(() => {
     if (!expanded) return;
@@ -113,8 +133,82 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
     document.body.style.right = "0";
     document.body.style.width = "100%";
     setPhotoOpen(false);
+    setDragOffset({ x: 0, y: 0 });
     setStatus("pending");
     setExpanded(true);
+  }, []);
+
+  // Bounds (in drag-offset space) that keep the office panel inside the map panel.
+  const getDragBounds = useCallback((): DragBounds | null => {
+    const mapPanel = panelRef.current;
+    const officePanel = officePanelRef.current;
+    if (!mapPanel || !officePanel) return null;
+    const mapRect = mapPanel.getBoundingClientRect();
+    const officeRect = officePanel.getBoundingClientRect();
+    return {
+      minX: dragOffset.x - (officeRect.left - mapRect.left),
+      maxX: dragOffset.x + (mapRect.right - officeRect.right),
+      minY: dragOffset.y - (officeRect.top - mapRect.top),
+      maxY: dragOffset.y + (mapRect.bottom - officeRect.bottom),
+    };
+  }, [dragOffset]);
+
+  // The whole panel is a drag surface except the directions link, which is
+  // exempted outright, and the photo button, whose click still needs to win
+  // over a drag when there was no real movement (see handlePanelClickCapture).
+  //
+  // Pointer capture is deliberately NOT taken on pointerdown: once an element
+  // has capture, the browser redirects the resulting click to that element
+  // instead of whatever's visually underneath, so a plain tap on the photo
+  // would never reach its button at all. Capture is only engaged once real
+  // movement past the threshold confirms this gesture is actually a drag.
+  const handlePanelPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      dragMovedRef.current = false;
+      if ((e.target as HTMLElement).closest("a[href]")) return;
+      const bounds = getDragBounds();
+      if (!bounds) return;
+      dragOriginRef.current = {
+        ...bounds,
+        pointerId: e.pointerId,
+        startX: e.clientX,
+        startY: e.clientY,
+        baseX: dragOffset.x,
+        baseY: dragOffset.y,
+      };
+    },
+    [getDragBounds, dragOffset]
+  );
+
+  const handlePanelPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const origin = dragOriginRef.current;
+    if (!origin || origin.pointerId !== e.pointerId) return;
+    const dx = e.clientX - origin.startX;
+    const dy = e.clientY - origin.startY;
+    if (!dragMovedRef.current) {
+      if (Math.hypot(dx, dy) < CLICK_DRAG_THRESHOLD) return;
+      dragMovedRef.current = true;
+      e.currentTarget.setPointerCapture(e.pointerId);
+    }
+    setDragOffset({
+      x: clamp(origin.baseX + dx, origin.minX, origin.maxX),
+      y: clamp(origin.baseY + dy, origin.minY, origin.maxY),
+    });
+  }, []);
+
+  const handlePanelPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragOriginRef.current?.pointerId === e.pointerId) dragOriginRef.current = null;
+  }, []);
+
+  // A real drag (movement past the threshold) must not also fire the photo
+  // button's click — swallow it here, in the capture phase, before it reaches
+  // the button. A plain tap (no movement) passes through untouched.
+  const handlePanelClickCapture = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (dragMovedRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    dragMovedRef.current = false;
   }, []);
 
   const openPhoto = useCallback(() => {
@@ -347,8 +441,20 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
 
               {/* office panel — photo as full background, card reserves its bottom via margin-top,
                   above the pending/error panels. Kept small since the photo button already opens
-                  a full, bigger view on click — no need for the resting panel to be large too. */}
-              <div className="absolute bottom-3 left-3 z-20 w-[clamp(160px,calc(50vw-12px),260px)] min-h-[clamp(220px,30dvh,280px)] overflow-hidden rounded-xl sm:bottom-6 sm:left-6 sm:w-[clamp(240px,26vw,320px)] sm:min-h-[clamp(300px,38dvh,400px)]">
+                  a full, bigger view on click — no need for the resting panel to be large too.
+                  Draggable from anywhere except the directions link; position resets to the
+                  default corner on reopen. The photo button's own click is suppressed when the
+                  gesture turned out to be a drag (see handlePanelClickCapture). */}
+              <div
+                ref={officePanelRef}
+                style={{ transform: `translate(${dragOffset.x}px, ${dragOffset.y}px)` }}
+                onPointerDown={handlePanelPointerDown}
+                onPointerMove={handlePanelPointerMove}
+                onPointerUp={handlePanelPointerUp}
+                onPointerCancel={handlePanelPointerUp}
+                onClickCapture={handlePanelClickCapture}
+                className="absolute bottom-3 left-3 z-20 w-[clamp(160px,calc(50vw-12px),260px)] min-h-[clamp(220px,30dvh,280px)] touch-none select-none overflow-hidden rounded-xl cursor-grab active:cursor-grabbing sm:bottom-6 sm:left-6 sm:w-[clamp(240px,26vw,320px)] sm:min-h-[clamp(300px,38dvh,400px)]"
+              >
                 <button
                   ref={photoTriggerRef}
                   type="button"
@@ -370,8 +476,8 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
                   View photo
                 </span>
 
-                <div className="pointer-events-none relative z-10 mt-[48%] flex flex-col gap-2 border-t border-paper/12 bg-[#0c0524]/86 p-2.5 sm:mt-[56%] sm:gap-3 sm:p-4">
-                  <div className="pointer-events-auto">
+                <div className="relative z-10 mt-[48%] flex flex-col gap-2 border-t border-paper/12 bg-[#0c0524]/86 p-2.5 sm:mt-[56%] sm:gap-3 sm:p-4">
+                  <div>
                     <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-orange sm:text-xs sm:tracking-[0.22em]">
                       {dict.heading}
                     </p>
@@ -388,7 +494,7 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
                     href={`https://www.google.com/maps/dir/?api=1&destination=${OFFICE.lat},${OFFICE.lng}`}
                     target="_blank"
                     rel="noopener"
-                    className="pointer-events-auto flex min-h-[44px] w-full items-center justify-center bg-orange px-3 font-mono text-[11px] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-orange/90 sm:min-h-[52px] sm:px-4 sm:text-[13px]"
+                    className="flex min-h-[44px] w-full cursor-pointer items-center justify-center bg-orange px-3 font-mono text-[11px] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-orange/90 sm:min-h-[52px] sm:px-4 sm:text-[13px]"
                   >
                     {dict.directions}
                   </a>
