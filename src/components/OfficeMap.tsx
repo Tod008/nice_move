@@ -348,7 +348,7 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
               {/* office panel — photo as full background, card reserves its bottom via margin-top,
                   above the pending/error panels. Kept small since the photo button already opens
                   a full, bigger view on click — no need for the resting panel to be large too. */}
-              <div className="absolute bottom-3 left-3 z-20 w-[clamp(240px,26vw,320px)] min-h-[clamp(260px,36dvh,340px)] sm:bottom-6 sm:left-6 sm:min-h-[clamp(300px,38dvh,400px)]">
+              <div className="absolute bottom-3 left-3 z-20 w-[clamp(200px,22vw,260px)] min-h-[clamp(220px,30dvh,280px)] sm:bottom-6 sm:left-6 sm:w-[clamp(240px,26vw,320px)] sm:min-h-[clamp(300px,38dvh,400px)]">
                 <button
                   ref={photoTriggerRef}
                   type="button"
@@ -361,21 +361,21 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
                     alt=""
                     fill
                     preload
-                    sizes="(max-width: 639px) 300px, 460px"
+                    sizes="(max-width: 639px) 260px, 320px"
                     className="object-cover"
                   />
                 </button>
 
-                <span className="office-view-chip pointer-events-none absolute right-2 top-2 z-10 rounded-sm bg-[#0c0524]/70 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.15em] text-paper/80">
+                <span className="office-view-chip pointer-events-none absolute right-2 top-2 z-10 rounded-sm bg-[#0c0524]/70 px-2 py-1 font-mono text-[8px] uppercase tracking-[0.15em] text-paper/80 sm:text-[9px]">
                   View photo
                 </span>
 
-                <div className="pointer-events-none relative z-10 mt-[48%] flex flex-col gap-3 border-t border-paper/12 bg-[#0c0524]/86 p-3 sm:mt-[56%] sm:p-4">
+                <div className="pointer-events-none relative z-10 mt-[48%] flex flex-col gap-2 border-t border-paper/12 bg-[#0c0524]/86 p-2.5 sm:mt-[56%] sm:gap-3 sm:p-4">
                   <div className="pointer-events-auto">
-                    <p className="font-mono text-xs uppercase tracking-[0.22em] text-orange">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-orange sm:text-xs sm:tracking-[0.22em]">
                       {dict.heading}
                     </p>
-                    <p className="mt-2 text-[17px] leading-snug text-paper sm:text-[19px]">
+                    <p className="mt-1.5 text-[14px] leading-snug text-paper sm:mt-2 sm:text-[19px]">
                       {OFFICE.lines.map((line, i) => (
                         <span key={line}>
                           {line}
@@ -388,7 +388,7 @@ export function OfficeMap({ dict }: { dict: Dictionary["footer"]["office"] }) {
                     href={`https://www.google.com/maps/dir/?api=1&destination=${OFFICE.lat},${OFFICE.lng}`}
                     target="_blank"
                     rel="noopener"
-                    className="pointer-events-auto flex min-h-[52px] w-full items-center justify-center bg-orange px-4 font-mono text-[13px] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-orange/90"
+                    className="pointer-events-auto flex min-h-[44px] w-full items-center justify-center bg-orange px-3 font-mono text-[11px] uppercase tracking-[0.15em] text-paper transition-colors hover:bg-orange/90 sm:min-h-[52px] sm:px-4 sm:text-[13px]"
                   >
                     {dict.directions}
                   </a>
